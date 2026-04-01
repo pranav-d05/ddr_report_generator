@@ -208,5 +208,15 @@ uv run python main.py --reingest
 ## Running Tests
 
 ```bash
+# Run all tests with verbose output
 uv run pytest tests/ -v
+
+# Run a specific test file
+uv run pytest tests/test_graph.py -v
+
+# Run with short summary of failures only
+uv run pytest tests/ -q
 ```
+
+Tests are fully mocked — no Cohere API key or real PDFs required to run them.
+Shared fixtures live in `tests/conftest.py`.

@@ -24,11 +24,13 @@ class DocumentChunker:
 
     def __init__(self, config: Config):
         self.config = config
+        # Use a larger chunk size to preserve more context per chunk.
+        # Inspection reports have structured blocks (Impacted Area N → Neg/Pos side)
+        # that should not be split across chunks.
         self._splitter = RecursiveCharacterTextSplitter(
             chunk_size=config.chunk_size,
             chunk_overlap=config.chunk_overlap,
             length_function=len,
-            # Separators in priority order
             separators=["\n\n", "\n", ". ", " ", ""],
         )
 
@@ -50,7 +52,6 @@ class DocumentChunker:
         for doc in documents:
             splits = self._splitter.split_documents([doc])
             for idx, chunk in enumerate(splits):
-                # Enrich metadata
                 chunk.metadata["chunk_index"] = idx
                 chunk.metadata["chunk_id"] = (
                     f"{chunk.metadata.get('source', 'unknown')}"

@@ -7,26 +7,37 @@ The new extractor uses xref-based deduplication (*_xrefNNNNN.png).
 
 Run this once:
     uv run python cleanup_images.py
+
+No API key required — this script only touches the local filesystem.
 """
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+# Resolve project root so this works from any working directory
+PROJECT_ROOT = Path(__file__).parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.config import Config
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 def main():
-    config = Config()
-    images_dir = config.images_dir
+    # Derive images_dir directly from .env or fall back to default — no Config() needed
+    from dotenv import load_dotenv
+    import os
+    load_dotenv(PROJECT_ROOT / ".env")
+
+    images_dir = Path(
+        os.getenv("IMAGES_DIR", str(PROJECT_ROOT / "outputs" / "images"))
+    ).resolve()
 
     if not images_dir.exists():
         logger.info(f"Images directory does not exist: {images_dir}")
         return
+
+    logger.info(f"Scanning: {images_dir}")
 
     patterns = ["inspection_page*.png", "thermal_page*.png"]
     total_removed = 0
@@ -44,7 +55,10 @@ def main():
                 logger.warning(f"Could not remove {f.name}: {e}")
 
     size_mb = total_size / (1024 * 1024)
-    logger.info(f"Removed {total_removed} legacy image files ({size_mb:.1f} MB freed)")
+    if total_removed:
+        logger.info(f"Removed {total_removed} legacy image files ({size_mb:.1f} MB freed)")
+    else:
+        logger.info("No legacy per-page images found — nothing to remove")
 
     # Report what remains
     remaining_xref = list(images_dir.glob("*_xref*.png"))

@@ -25,8 +25,8 @@ class DDRState(TypedDict, total=False):
     area_observations: Dict[str, str]
     # Node 2 — {area_key: observation_text}
 
-    area_images: Dict[str, List[Path]]
-    # Node 2 — {area_key: [image_path, ...]} — images assigned per area
+    area_images: Dict[str, Dict[str, List[Path]]]
+    # Node 2 — {area_key: {"visual": [Path, ...], "thermal": [Path, ...]}} — images assigned per area
 
     root_causes: Dict[str, str]
     # Node 3 — {area_key: root_cause_text}
