@@ -1,0 +1,10 @@
+chroma_db/
+outputs/
+*.pdf
+__pycache__/
+.venv/
+*.pyc
+.env
+*.egg-info/
+dist/
+.pytest_cache/
