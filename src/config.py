@@ -17,6 +17,7 @@ class Config:
 
     # ── Embeddings ────────────────────────────────────────────────────
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
+    hf_token: str = os.getenv("HF_TOKEN", "").strip()
 
     # ── Vector Store ──────────────────────────────────────────────────
     chroma_db_path: Path = BASE_DIR / os.getenv("CHROMA_DB_PATH", "chroma_db")
