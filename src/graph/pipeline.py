@@ -60,7 +60,27 @@ class DDRPipeline:
     # ── Graph construction ──────────────────────────────────────────────────
 
     def _build_graph(self) -> Any:
-        """Wire up all nodes into a sequential StateGraph and compile it."""
+        """
+        Wire up nodes into a parallelised StateGraph.
+
+        Execution order (two levels of parallelism):
+
+        Stage 0:  property_summary   (sequential anchor)
+                      |
+        Stage 1:  [area_observations, root_causes,         (LangGraph fan-out
+                   severity, recommended_actions]           — all 4 run in parallel)
+                  +
+                  Each of those 4 nodes internally runs 6
+                  area sub-tasks with ThreadPoolExecutor.
+                      |
+        Stage 2:  [additional_notes, missing_info]         (LangGraph fan-out)
+                      |
+        Stage 3:  compile  (join + validate)
+
+        Total critical-path depth: 4 hops (vs 8 serial).
+        Intra-node parallelism further reduces wall time from
+        6 serial area calls to ~1 area-call per node.
+        """
 
         # Wrap each node so it receives config + vector_store via closure
         def wrap(node_fn):
@@ -71,7 +91,7 @@ class DDRPipeline:
 
         graph = StateGraph(DDRState)
 
-        # Register nodes
+        # ── Register all nodes ────────────────────────────────────────────
         graph.add_node("property_summary",    wrap(node_property_summary))
         graph.add_node("area_observations",   wrap(node_area_observations))
         graph.add_node("root_causes",         wrap(node_root_causes))
@@ -81,17 +101,27 @@ class DDRPipeline:
         graph.add_node("missing_info",        wrap(node_missing_info))
         graph.add_node("compile",             wrap(node_compile))
 
-        # Sequential edges
+        # ── Stage 0 → Stage 1: fan out to 4 parallel nodes ───────────────
         graph.set_entry_point("property_summary")
-        graph.add_edge("property_summary",    "area_observations")
-        graph.add_edge("area_observations",   "root_causes")
-        graph.add_edge("root_causes",         "severity")
-        graph.add_edge("severity",            "recommended_actions")
-        graph.add_edge("recommended_actions", "additional_notes")
-        graph.add_edge("additional_notes",    "missing_info")
-        graph.add_edge("missing_info",        "compile")
-        graph.add_edge("compile",             END)
+        graph.add_edge("property_summary", "area_observations")
+        graph.add_edge("property_summary", "root_causes")
+        graph.add_edge("property_summary", "severity")
+        graph.add_edge("property_summary", "recommended_actions")
+
+        # ── Stage 1 → Stage 2: all 4 nodes feed into 2 parallel nodes ────
+        for upstream in ("area_observations", "root_causes",
+                         "severity", "recommended_actions"):
+            graph.add_edge(upstream, "additional_notes")
+            graph.add_edge(upstream, "missing_info")
+
+        # ── Stage 2 → Stage 3: both feed compile ─────────────────────────
+        graph.add_edge("additional_notes", "compile")
+        graph.add_edge("missing_info",     "compile")
+        graph.add_edge("compile",          END)
 
         compiled = graph.compile()
-        logger.info("LangGraph pipeline compiled — 8 nodes, sequential execution")
+        logger.info(
+            "LangGraph pipeline compiled — parallelised: "
+            "Stage1=[obs|roots|severity|actions], Stage2=[notes|missing]"
+        )
         return compiled

@@ -45,6 +45,16 @@ class Config:
     # ── RAG Retrieval ─────────────────────────────────────────────────
     retrieval_k: int = 8   # top-k chunks per query
 
+    # ── Per-section max_tokens (right-sized to cut generation time) ────────────
+    # Tighter limits = faster TTFT + less rambling on structured outputs.
+    max_tokens_summary:     int = 512   # Node 1 — ~300 word summary
+    max_tokens_observation: int = 700   # Node 2 — detailed per-area prose
+    max_tokens_root_cause:  int = 400   # Node 3 — 2-3 root causes
+    max_tokens_severity:    int = 120   # Node 4 — 2-line structured output only
+    max_tokens_actions:     int = 600   # Node 5 — step-by-step actions
+    max_tokens_notes:       int = 350   # Node 6 — 150-250 word section
+    max_tokens_missing:     int = 250   # Node 7 — bullet list
+
     # ── LangSmith Observability ───────────────────────────────────────
     langsmith_tracing:  bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower().strip() == "true"
     langsmith_api_key:  str  = os.getenv("LANGCHAIN_API_KEY",    "").strip()
