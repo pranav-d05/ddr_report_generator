@@ -150,12 +150,19 @@ def main():
         import httpx
         resp = httpx.get(
             "https://openrouter.ai/api/v1/auth/key",
-            headers={"Authorization": f"Bearer {config.openrouter_api_key}"},
+            headers={
+                "Authorization": f"Bearer {config.openrouter_api_key}",
+                "HTTP-Referer": "https://urbanroof.in",
+                "X-Title": "DDR Report Generator",
+            },
             timeout=10,
         )
         if resp.status_code == 401 or resp.status_code == 403:
-            logger.error("OpenRouter API key is INVALID. Update OPENROUTER_API_KEY in .env")
+            logger.error(f"OpenRouter API key is INVALID (Code: {resp.status_code}). Response: {resp.text}")
+            logger.error("Update OPENROUTER_API_KEY in .env")
             sys.exit(1)
+        elif resp.status_code != 200:
+            logger.warning(f"OpenRouter check returned {resp.status_code}: {resp.text}")
         logger.info("OpenRouter API key valid ✓")
     except Exception as e:
         logger.warning(f"Could not pre-check OpenRouter API key: {e} — proceeding anyway")

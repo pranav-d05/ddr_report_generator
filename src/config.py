@@ -5,15 +5,14 @@ Centralised configuration — reads from .env
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-
-load_dotenv()
+load_dotenv(override=True)
 
 BASE_DIR = Path(__file__).parent.parent
 
 
 class Config:
     # ── LLM (OpenRouter) ─────────────────────────────────────────────
-    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
+    openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "").strip()
     openrouter_model: str = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
 
     # ── Embeddings ────────────────────────────────────────────────────
@@ -47,10 +46,10 @@ class Config:
     retrieval_k: int = 8   # top-k chunks per query
 
     # ── LangSmith Observability ───────────────────────────────────────
-    langsmith_tracing:  bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"
-    langsmith_api_key:  str  = os.getenv("LANGCHAIN_API_KEY",    "")
-    langsmith_project:  str  = os.getenv("LANGCHAIN_PROJECT",    "ddr-report-generator")
-    langsmith_endpoint: str  = os.getenv("LANGCHAIN_ENDPOINT",   "https://api.smith.langchain.com")
+    langsmith_tracing:  bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower().strip() == "true"
+    langsmith_api_key:  str  = os.getenv("LANGCHAIN_API_KEY",    "").strip()
+    langsmith_project:  str  = os.getenv("LANGCHAIN_PROJECT",    "ddr-report-generator").strip()
+    langsmith_endpoint: str  = os.getenv("LANGCHAIN_ENDPOINT",   "https://api.smith.langchain.com").strip()
 
     def validate(self):
         if not self.openrouter_api_key:
